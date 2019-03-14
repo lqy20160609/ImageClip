@@ -1,7 +1,6 @@
 package com.liqingyue.imageclip.core
 
 import android.animation.ValueAnimator
-import android.util.Log
 import android.view.animation.AccelerateDecelerateInterpolator
 
 class ClipImageAnimator() : ValueAnimator() {
