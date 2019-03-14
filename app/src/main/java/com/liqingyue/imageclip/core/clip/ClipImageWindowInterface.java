@@ -1,0 +1,103 @@
+package com.liqingyue.imageclip.core.clip;
+
+import android.graphics.RectF;
+import android.util.Log;
+
+/**
+ * 定义裁剪框相关参数以及锚点
+ */
+
+public interface ClipImageWindowInterface {
+
+    float CLIP_MARGIN = 0f;
+
+    float CLIP_CORNER_SIZE = 48f;
+
+    float CLIP_FRAME_MIN = CLIP_CORNER_SIZE * 3.14f;
+
+    float CLIP_THICKNESS_FRAME = 8f;
+
+    float CLIP_THICKNESS_SEWING = 14f;
+
+    float[] CLIP_SIZE_RATIO = {0, 1, 0.33f, 0.66f};
+
+    int CLIP_CORNER_STRIDES = 0x0AAFF550;
+
+    float[] CLIP_CORNER_STEPS = {0, 3, -3};
+
+    float[] CLIP_CORNER_SIZES = {0, CLIP_CORNER_SIZE, -CLIP_CORNER_SIZE};
+
+    byte[] CLIP_CORNERS = {
+            0x8, 0x8, 0x9, 0x8,
+            0x6, 0x8, 0x4, 0x8,
+            0x4, 0x8, 0x4, 0x1,
+            0x4, 0xA, 0x4, 0x8,
+            0x4, 0x4, 0x6, 0x4,
+            0x9, 0x4, 0x8, 0x4,
+            0x8, 0x4, 0x8, 0x6,
+            0x8, 0x9, 0x8, 0x8
+    };
+
+    enum Anchor {
+        LEFT(1),//1
+        RIGHT(2),//10
+        TOP(4),//100
+        BOTTOM(8),//1000
+        LEFT_TOP(5),//101
+        RIGHT_TOP(6),//110
+        LEFT_BOTTOM(9),//1001
+        RIGHT_BOTTOM(10);//1010
+        //1 10 100 1000
+        int v;
+
+        static final int[] PN = {1, -1};
+
+        Anchor(int v) {
+            this.v = v;
+        }
+
+        public void move(RectF win, RectF frame, float dx, float dy) {
+            float[] maxFrame = getFrame(win, CLIP_MARGIN);
+            float[] minFrame = getFrame(frame, CLIP_FRAME_MIN);
+            float[] theFrame = getFrame(frame, 0);
+
+            float[] dxy = {dx, 0, dy};
+            for (int i = 0; i < 4; i++) {
+                // 判断v的第i位是否为1
+                if (((1 << i) & v) != 0) {
+                    int pn = PN[i & 1];
+                    theFrame[i] = pn * getRealValue(pn * (theFrame[i] + dxy[i & 2]),
+                            pn * maxFrame[i], pn * minFrame[i + PN[i & 1]]);
+                }
+            }
+
+            frame.set(theFrame[0], theFrame[2], theFrame[1], theFrame[3]);
+        }
+
+        public static float getRealValue(float v, float min, float max) {
+            return Math.min(Math.max(v, min), max);
+        }
+
+        public static float[] getFrame(RectF win, float v) {
+            return new float[]{
+                    win.left + v, win.right - v,
+                    win.top + v, win.bottom - v
+            };
+        }
+
+        public static boolean isCohesionContains(RectF frame, float v, float x, float y) {
+            return frame.left + v < x && frame.right - v > x
+                    && frame.top + v < y && frame.bottom - v > y;
+        }
+
+        public static Anchor valueOf(int v) {
+            Anchor[] values = values();
+            for (Anchor anchor : values) {
+                if (anchor.v == v) {
+                    return anchor;
+                }
+            }
+            return null;
+        }
+    }
+}
